@@ -16,7 +16,7 @@ use VMelnik\DoctrineEncryptBundle\Encryptors\EncryptorInterface;
  */
 class DoctrineEncryptSubscriber implements EventSubscriber {
     /**
-     * Encryptor interface namespace 
+     * Encryptor interface namespace
      */
 
     const ENCRYPTOR_INTERFACE_NS = 'VMelnik\DoctrineEncryptBundle\Encryptors\EncryptorInterface';
@@ -28,7 +28,7 @@ class DoctrineEncryptSubscriber implements EventSubscriber {
 
     /**
      * Encryptor
-     * @var EncryptorInterface 
+     * @var EncryptorInterface
      */
     private $encryptor;
 
@@ -46,9 +46,9 @@ class DoctrineEncryptSubscriber implements EventSubscriber {
 
     /**
      * Initialization of subscriber
-     * @param string $encryptorClass  The encryptor class.  This can be empty if 
+     * @param string $encryptorClass  The encryptor class.  This can be empty if
      * a service is being provided.
-     * @param string $secretKey The secret key. 
+     * @param string $secretKey The secret key.
      * @param EncryptorInterface|NULL $service (Optional)  An EncryptorInterface.
      * This allows for the use of dependency injection for the encrypters.
      */
@@ -64,7 +64,7 @@ class DoctrineEncryptSubscriber implements EventSubscriber {
     /**
      * Listen a prePersist lifecycle event. Checking and encrypt entities
      * which have @Encrypted annotation
-     * @param LifecycleEventArgs $args 
+     * @param LifecycleEventArgs $args
      */
     public function prePersist(LifecycleEventArgs $args) {
         $entity = $args->getEntity();
@@ -75,7 +75,7 @@ class DoctrineEncryptSubscriber implements EventSubscriber {
      * Listen a preUpdate lifecycle event. Checking and encrypt entities fields
      * which have @Encrypted annotation. Using changesets to avoid preUpdate event
      * restrictions
-     * @param PreUpdateEventArgs $args 
+     * @param PreUpdateEventArgs $args
      */
     public function preUpdate(PreUpdateEventArgs $args) {
         $reflectionClass = new ReflectionClass($args->getEntity());
@@ -83,7 +83,9 @@ class DoctrineEncryptSubscriber implements EventSubscriber {
         foreach ($properties as $refProperty) {
             if ($this->annReader->getPropertyAnnotation($refProperty, self::ENCRYPTED_ANN_NAME)) {
                 $propName = $refProperty->getName();
-                $args->setNewValue($propName, $this->encryptor->encrypt($args->getNewValue($propName)));
+                if ($args->hasChangedField($propName)) {
+                    $args->setNewValue($propName, $this->encryptor->encrypt($args->getNewValue($propName)));
+                }
             }
         }
     }
@@ -91,7 +93,7 @@ class DoctrineEncryptSubscriber implements EventSubscriber {
     /**
      * Listen a postLoad lifecycle event. Checking and decrypt entities
      * which have @Encrypted annotations
-     * @param LifecycleEventArgs $args 
+     * @param LifecycleEventArgs $args
      */
     public function postLoad(LifecycleEventArgs $args) {
         $entity = $args->getEntity();
@@ -130,7 +132,7 @@ class DoctrineEncryptSubscriber implements EventSubscriber {
     /**
      * Process (encrypt/decrypt) entities fields
      * @param Obj $entity Some doctrine entity
-     * @param Boolean $isEncryptOperation If true - encrypt, false - decrypt entity 
+     * @param Boolean $isEncryptOperation If true - encrypt, false - decrypt entity
      */
     private function processFields($entity, $isEncryptOperation = true) {
         $encryptorMethod = $isEncryptOperation ? 'encrypt' : 'decrypt';
@@ -164,7 +166,7 @@ class DoctrineEncryptSubscriber implements EventSubscriber {
      * @param string $classFullName Encryptor namespace and name
      * @param string $secretKey Secret key for encryptor
      * @return EncryptorInterface
-     * @throws \RuntimeException 
+     * @throws \RuntimeException
      */
     private function encryptorFactory($classFullName, $secretKey) {
         $refClass = new \ReflectionClass($classFullName);
